@@ -1,0 +1,54 @@
+body{
+	background-color: #ddd;
+	font-family: Helvetica Neue, Arial;
+	overflow: hidden;
+}
+
+.name-prompt{
+	position: absolute;
+	top: 40px;
+	left: 250px;
+  margin-left: 0;
+  width: 400px;
+	background-color: #eee;
+	z-index: 2;
+	padding: 10px;
+}
+#credits{
+
+}
+
+
+.ship-selection{
+	display: inline-block;
+	width: 350px;
+	padding: 0;
+	list-style-type: none;
+	margin: 20px auto 0 auto;
+}
+
+.ship-select label{
+	display: inline-block;
+	margin: 10px 0;
+	width: 100%;
+	text-align: center;
+}
+
+.ship-selection li{
+	display: inline-block;
+	float: left;
+	width: 33%;
+	text-align: center;
+	cursor: pointer;
+	border: 2px solid #eee;
+	padding: 10px 0;
+}
+
+.ship-selection li.selected{
+	border: 2px solid #158cba;
+	-webkit-border-radius: 5px;
+	   -moz-border-radius: 5px;
+		 -o-border-radius: 5px;
+			border-radius: 5px;
+	border-radius: 5px;
+}
