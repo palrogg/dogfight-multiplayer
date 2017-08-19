@@ -1,5 +1,5 @@
 {
-  "name": "dogfight",
+  "name": "dogfight-arena",
   "version": "0.0.1",
   "description": "A simple multiplayer game built with (to be completed)",
   "dependencies": {
@@ -9,5 +9,23 @@
   },
   "scripts": {
     "start": "node index.js"
-  }
+  },
+  "main": "index.js",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/palrogg/dogfight-multiplayer.git"
+  },
+  "keywords": [
+    "dogfight",
+    "multiplayer",
+    "game",
+    "2d"
+  ],
+  "author": "Paul Ronga",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/palrogg/dogfight-multiplayer/issues"
+  },
+  "homepage": "https://github.com/palrogg/dogfight-multiplayer#readme"
 }
