@@ -119,6 +119,10 @@ function Game(arenaId, w, h, socket){
 	this.width = w;
 	this.height = h;
 	this.$arena = $(arenaId);
+	// Outfits
+	this.outfits = [];
+	this.glowVar = -4;
+	this.lastGlow = 0;
   if(MULTI){
   	this.socket = socket;
   }
@@ -129,6 +133,12 @@ function Game(arenaId, w, h, socket){
 }
 
 Game.prototype = {
+	addOutfit: function(name, type, x, y){
+		var outfit = new Outfit(name, type, x, y);
+		outfit.materialize();
+		this.outfits.push(outfit);
+	},
+
 	addToLeaderboard: function(ship, isLocal){
 
 		var isLocalClass = isLocal ? 'local score' : 'score';
@@ -263,6 +273,21 @@ Game.prototype = {
 
 	receiveData: function(serverData){
 		var game = this;
+		
+		serverData.outfits.forEach( function(serverOutfit){
+			var found = false;
+			game.outfits.forEach( function(clientOutfit){
+				if(clientOutfit.id == serverOutfit.id){
+					found = true;
+					// ...
+				}
+			} );
+			if(!found){
+				console.log(serverOutfit);
+				game.addOutfit(serverOutfit.name, serverOutfit.type, serverOutfit.x, serverOutfit.y);
+			}
+		});
+		
 		serverData.ships.forEach( function(serverShip){
 
 			//Update local ship stats
@@ -276,7 +301,8 @@ Game.prototype = {
 					sendRespawnRequest(game.localShip.id);
 				}
 			}
-
+			
+			
 			//Update foreign ships
 			var found = false;
 			var counter = 1;
@@ -326,6 +352,41 @@ Game.prototype = {
 		});
 	}
 }
+
+/*
+	OUTFIT class
+	weapons
+	shields
+	...
+*/
+function Outfit(name, type, x, y){
+	this.name = name;
+  this.type = type;
+  this.x = x;
+  this.y = y;
+  this.active = true;
+  this.sprite = null;
+}
+Outfit.prototype = {
+	materialize: function(){
+    	var spriteURLs = {
+    	'laser': 'https://res.cloudinary.com/dogfight/image/upload/v1531467481/outfit/hai_rifle.png',
+      'minishield': 'http://res.cloudinary.com/dogfight/image/upload/c_scale,w_67/v1531467481/outfit/blue_sun.png'
+    }
+    var outfitSprite = PIXI.Sprite.fromImage(spriteURLs[this.name]);
+    outfitSprite.x = this.x;
+    outfitSprite.y = this.y;
+    outfitSprite.anchor.set(0.5);
+    /*outfitSprite.filters = [
+      new PIXI.filters.GlowFilter(10, 2, 1, 0xCCFF00, 0.5)
+    ];*/
+    universe.addChild(outfitSprite);
+    this.sprite = outfitSprite;
+  },
+  respawn: function(){
+  	
+  }
+};
 
 function Ball(id, ownerId, $arena, x, y, alpha){
 	this.id = id;
@@ -520,12 +581,12 @@ Ship.prototype = {
 				case 40: // arrow down
 				case 83: //S
 					t.dir.down = true;
-					if(t.dead != true){
+					/*if(t.dead != true){
 						console.log('Autodestruction')
 						game.killShip(t);
 					}else{
 						console.log('already †††')
-					}
+					}*/
 					break;
 				case 37: // arrow left
 				case 65: //A
@@ -630,7 +691,7 @@ Ship.prototype = {
 			this.baseAngle += rotateRequest * dt * this.maneuverability;
 		}
 
-		if(this.shootRequest && now - lastShoot > 50){
+		if(this.shootRequest && now - lastShoot > 100){
 			this.shoot();
 			lastShoot = now;
 		}

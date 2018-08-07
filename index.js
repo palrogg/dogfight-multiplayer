@@ -34,6 +34,7 @@ function GameServer(){
 	this.ships = [];
 	this.balls = [];
 	this.lastBallId = 0;
+	this.outfits = [];
 }
 
 GameServer.prototype = {
@@ -44,6 +45,11 @@ GameServer.prototype = {
 
 	addBall: function(ball){
 		this.balls.push(ball);
+	},
+
+	addOutfit: function(outfit){
+		this.outfits.push(outfit);
+		console.log('added');
 	},
 
 	removeShip: function(shipId){
@@ -120,7 +126,8 @@ GameServer.prototype = {
 		var gameData = {};
 		gameData.ships = this.ships;
 		gameData.balls = this.balls;
-
+		gameData.outfits = this.outfits;
+		
 		return gameData;
 	},
 
@@ -245,3 +252,8 @@ Ball.prototype = {
 function getRandomInt(min, max) {
 	return Math.floor(Math.random() * (max - min)) + min;
 }
+
+
+/*setInterval(function(){
+	game.addOutfit({'name': 'laser', 'type': 'weapon', 'x': getRandomInt(100, worldWidth-200), 'y': getRandomInt(100, worldWidth-200)});	
+}, 500);*/
