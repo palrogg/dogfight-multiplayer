@@ -114,14 +114,47 @@ GameServer.prototype = {
 	},
 
 	updateLeaderBoard: function(deadShip, killerId){
-		deadShip.deaths += 1;
+		// deadShip.rank += 1; // we don't track deaths in this model (ship = player)
 		this.ships.forEach( function(ship){
 			if(ship.id == killerId){
 				ship.kills += 1;
+				if(ship.kills > 10){
+					ship.rank = 'The Boss.';
+				} else {
+					ship.rank = 'Apprentice'
+				}
 			}
 		});
 	},
 
+	idIsAvailable: function(_id){
+		if( ! Number.isInteger(_id) ){
+			console.log('Id is not an integer.')
+			return false;
+		}
+		this.ships.forEach( function(ship){
+			if(ship.id == _id){
+				// id already in use
+				console.log('Id in use! Previous player: ' + ship.name);
+				return false;
+			}
+		});
+		return true;
+	},
+	
+	isValidShoot: function(_ball){
+		this.ships.forEach( function(ship){
+			if(ship.id == _ball.ownerId){
+				// user is dead
+				if(ship.hp <= 0){
+					return false;
+				}
+				// TODO check distance and position here
+			}
+		});
+		return true;
+	},
+	
 	getData: function(){
 		var gameData = {};
 		gameData.ships = this.ships;
@@ -134,7 +167,7 @@ GameServer.prototype = {
 	getScoreData: function(){
 		var scoreData = [];
 		this.ships.forEach( function(ship){
-			scoreData.push({'id': ship.id, 'name': ship.name, 'kills': ship.kills, 'deaths': ship.deaths});
+			scoreData.push({'id': ship.id, 'name': ship.name, 'kills': ship.kills, 'deaths': ship.rank});
 		});
 		return scoreData;
 	},
@@ -179,12 +212,17 @@ io.on('connection', function(client) {
 		// validator.whitelist() seems to have no effect in version 8.0.0
 		//ship.name = validator.whitelist(ship.name, /[a-zA-Z0-9 -]/);
 		console.log(ship.name + ' joined the game');
-		console.log('His type:' + ship.type);
+		console.log('His vessel type: ' + ship.type);
+		console.log('His id: ' + ship.id);
+		
+		// TODO check if valid id
+		console.log(game.idIsAvailable(ship.id));
+
 		var initX = getRandomInt(100, worldWidth-200);
 		var initY = getRandomInt(100, worldHeight-200);
 		client.emit('addShip', { id: ship.id, name: ship.name, type: ship.type, isLocal: true, x: initX, y: initY, hp: TANK_INIT_HP});
 		client.broadcast.emit('addShip', { id: ship.id, name: ship.name, type: ship.type, isLocal: false, x: initX, y: initY, hp: TANK_INIT_HP} );
-		game.addShip({ id: ship.id, name:ship.name, type: ship.type, hp: TANK_INIT_HP, kills: 0, deaths: 0 });
+		game.addShip({ id: ship.id, name:ship.name, type: ship.type, hp: TANK_INIT_HP, kills: 0, rank: 'Noob' });
 	});
 
 	client.on('sync', function(data){
@@ -206,6 +244,10 @@ io.on('connection', function(client) {
 	});
 
 	client.on('shoot', function(ball){
+		console.log(ball.ownerId);
+		//game.isValidShoot();
+		// Check if user can shoot
+		// TODO check for position
 		var ball = new Ball(ball.ownerId, ball.alpha, ball.x, ball.y );
 		game.addBall(ball);
 	});
