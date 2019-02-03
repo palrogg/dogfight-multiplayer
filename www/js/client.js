@@ -30,7 +30,7 @@ socket.on('updateLeaderBoard', function(scoreData){
 				<td></td>
 				<td>` + ship.name + `</td>
 				<td>` + ship.kills + `</td>
-				<td>` + ship.deaths + `</td>
+				<td>` + ship.rank + `</td>
 			`);
 	});
 

@@ -148,7 +148,7 @@ Game.prototype = {
 				<td></td>
 				<td>` + ship.name + `</td>
 				<td>` + ship.kills + `</td>
-				<td>` + ship.deaths + `</td>
+				<td>` + ship.rank + `</td>
 			</tr>
 			`);
 
@@ -159,8 +159,8 @@ Game.prototype = {
 		});
 	},
 
-	addShip: function(id, name, type, isLocal, x, y, hp, kills, deaths){
-		var t = new Ship(id, name, type, this.$arena, this, isLocal, x, y, hp, kills, deaths);
+	addShip: function(id, name, type, isLocal, x, y, hp, kills, rank){
+		var t = new Ship(id, name, type, this.$arena, this, isLocal, x, y, hp, kills, rank);
 		if(isLocal){
 			this.localShip = t;
 		}else{
@@ -428,7 +428,7 @@ Ball.prototype = {
 	}
 }
 
-function Ship(id, name, type, $arena, game, isLocal, x, y, hp, kills, deaths){
+function Ship(id, name, type, $arena, game, isLocal, x, y, hp, kills, rank){
 	this.id = id;
 	this.name = name;
 	this.type = type;
@@ -457,9 +457,9 @@ function Ship(id, name, type, $arena, game, isLocal, x, y, hp, kills, deaths){
 	this.isLocal = isLocal;
 	this.hp = hp;
 	if(!kills) kills = 0;
-	if(!deaths) deaths = 0;
+	if(!rank) rank = 'Noob';
 	this.kills = kills;
-	this.deaths = deaths;
+	this.rank = rank;
 	this.dead = false;
 
 	this.materialize();
