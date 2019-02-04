@@ -1,5 +1,5 @@
 var express = require('express');
-//var validator = require('validator');
+var validator = require('validator');
 
 var worldWidth = 1200, worldHeight = 1200;
 
@@ -17,8 +17,9 @@ app.use('/www/images', express.static('public'))
 
 //app.use('/www/images',express.static(__dirname + '/www/images'));
 
-var ipaddress = process.env.OPENSHIFT_NODEJS_IP || "127.0.0.1";
-var port = process.env.OPENSHIFT_NODEJS_PORT || 8080;
+var port = 80;
+
+// run locally on my Mac -- change for your needs, for example
 if(process.platform == 'darwin'){
 	port = 8082;
 }
@@ -31,6 +32,7 @@ var server = app.listen(process.env.PORT || port, function () {
 var io = require('socket.io')(server);
 
 function GameServer(){
+	this.users = [];
 	this.ships = [];
 	this.balls = [];
 	this.lastBallId = 0;
@@ -38,7 +40,10 @@ function GameServer(){
 }
 
 GameServer.prototype = {
-
+	addUser: function(user){
+		this.users.push(user)
+	},
+	
 	addShip: function(ship){
 		this.ships.push(ship);
 	},
@@ -72,10 +77,10 @@ GameServer.prototype = {
 	//The app has absolute control of the balls and their movement
 	syncBalls: function(){
 		var self = this;
-		//Detect when ball is out of bounds
 		this.balls.forEach( function(ball){
 			self.detectCollision(ball);
 
+			//Detect when ball is out of bounds
 			if(ball.x < 0 || ball.x > WIDTH
 				|| ball.y < 0 || ball.y > HEIGHT){
 				ball.out = true;
@@ -83,6 +88,31 @@ GameServer.prototype = {
 				ball.fly();
 			}
 		});
+	},
+	
+	syncOutfits: function(){
+		var self = this;
+		this.outfits.forEach( function(outfit){
+			self.detectLoot(outfit);
+		});
+	},
+
+	detectLoot: function(outfit){
+		var self = this;
+		
+		this.ships.forEach( function(ship){
+			if(Math.abs(ship.x - outfit.x) < 150
+				&& Math.abs(ship.y - outfit.y) < 150){
+				console.log('LOOT');
+				self.lootOutfit(ship, outfit);
+				outfit.out = true;
+			}
+		});
+	},
+	
+	lootOutfit(ship, outfit){
+		// ship.getOutfit(outfit);
+		//console.log('loot func')
 	},
 
 	//Detect if ball collides with any ship
@@ -167,7 +197,7 @@ GameServer.prototype = {
 	getScoreData: function(){
 		var scoreData = [];
 		this.ships.forEach( function(ship){
-			scoreData.push({'id': ship.id, 'name': ship.name, 'kills': ship.kills, 'deaths': ship.rank});
+			scoreData.push({'id': ship.id, 'name': ship.name, 'kills': ship.kills, 'rank': ship.rank});
 		});
 		return scoreData;
 	},
@@ -194,6 +224,12 @@ GameServer.prototype = {
 		});
 	},
 
+	cleanOutfits: function(){
+		this.outfits = this.outfits.filter(function(outfit){
+			return !outfit.out;
+		});
+	},
+
 	increaseLastBallId: function(){
 		this.lastBallId ++;
 		if(this.lastBallId > 1000){
@@ -209,8 +245,7 @@ var game = new GameServer();
 
 io.on('connection', function(client) {
 	client.on('joinGame', function(ship){
-		// validator.whitelist() seems to have no effect in version 8.0.0
-		//ship.name = validator.whitelist(ship.name, /[a-zA-Z0-9 -]/);
+		ship.name = validator.whitelist(ship.name, /a-zA-Z0-9 /);
 		console.log(ship.name + ' joined the game');
 		console.log('His vessel type: ' + ship.type);
 		console.log('His id: ' + ship.id);
@@ -232,6 +267,7 @@ io.on('connection', function(client) {
 		}
 		//update ball positions
 		game.syncBalls();
+		game.syncOutfits();
 		//Broadcast data to clients
 		client.emit('sync', game.getData());
 		client.broadcast.emit('sync', game.getData());
@@ -240,6 +276,7 @@ io.on('connection', function(client) {
 		//when the ship dies and when the balls explode
 		game.cleanDeadShips();
 		game.cleanDeadBalls();
+		game.cleanOutfits();
 		counter ++;
 	});
 
@@ -296,6 +333,6 @@ function getRandomInt(min, max) {
 }
 
 
-/*setInterval(function(){
+setTimeout(function(){
 	game.addOutfit({'name': 'laser', 'type': 'weapon', 'x': getRandomInt(100, worldWidth-200), 'y': getRandomInt(100, worldWidth-200)});	
-}, 500);*/
+}, 1200);

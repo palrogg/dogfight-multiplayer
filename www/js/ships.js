@@ -46,6 +46,7 @@ var app = new PIXI.Application(900, 600, {backgroundColor : 0x111111});
 document.body.appendChild(app.view);
 var universe = new PIXI.Container();
 var ballContainer = new PIXI.Container();
+var outfitContainer = new PIXI.Container();
 app.stage.position.x = app.renderer.width / 2;
 app.stage.position.y = app.renderer.height / 2;
 
@@ -107,8 +108,8 @@ universe.addChild(universeLimitTop);
 universe.addChild(universeLimitLeft);
 universe.addChild(universeLimitBottom);
 universe.addChild(universeLimitRight);
+universe.addChild(outfitContainer);
 universe.addChild(ballContainer);
-
 
 
 /* ===== ====== ===== */
@@ -183,6 +184,12 @@ Game.prototype = {
 		console.log('One ship removed. Ships[] length is now ' + this.ships.length);
 	},
 
+	// Someone (this may include the player) looted the weapon
+	removeOutfit: function(outfit){
+		this.outfits = this.outfits.filter( function(o){return o.id != outfit.id} );
+		universe.removeChild(outfit.sprite);		
+	},
+	
 	killShip: function(ship){
 		console.log('KILLTANK CALLED - ' + Date.now())
 		console.log('Is the ship already dead?')
@@ -279,7 +286,12 @@ Game.prototype = {
 			game.outfits.forEach( function(clientOutfit){
 				if(clientOutfit.id == serverOutfit.id){
 					found = true;
+					if(serverOutfit.out){
+						console.log('Out!');
+						game.removeOutfit(clientOutfit);
+					}
 					// ...
+					// console.log('found?')
 				}
 			} );
 			if(!found){
@@ -341,8 +353,6 @@ Game.prototype = {
 			ballContainer.removeChild(ballContainer.children[i]);
 		};
 
-
-
 		serverData.balls.forEach( function(serverBall){
 			var b = new Ball(serverBall.id, serverBall.ownerId, game.$arena, serverBall.x, serverBall.y, serverBall.alpha);
 			b.exploding = serverBall.exploding;
@@ -374,18 +384,23 @@ Outfit.prototype = {
       'minishield': 'http://res.cloudinary.com/dogfight/image/upload/c_scale,w_67/v1531467481/outfit/blue_sun.png'
     }
     var outfitSprite = PIXI.Sprite.fromImage(spriteURLs[this.name]);
+		outfitSprite.filters = [
+      // new PIXI.filters.GlowFilter(10, 2, 1, 0xCCFF00, 0.5)
+    ];
     outfitSprite.x = this.x;
     outfitSprite.y = this.y;
     outfitSprite.anchor.set(0.5);
-    /*outfitSprite.filters = [
-      new PIXI.filters.GlowFilter(10, 2, 1, 0xCCFF00, 0.5)
-    ];*/
+    
     universe.addChild(outfitSprite);
     this.sprite = outfitSprite;
   },
   respawn: function(){
   	
-  }
+  },
+	remove: function(){
+		console.log('remove')
+		universe.removeChild(this);
+	}
 };
 
 function Ball(id, ownerId, $arena, x, y, alpha){
