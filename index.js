@@ -1,3 +1,5 @@
+"use strict";
+
 var express = require('express');
 var validator = require('validator');
 
@@ -9,6 +11,7 @@ var BALL_SPEED = 50;
 var WIDTH = 1200;
 var HEIGHT = 1200;
 var TANK_INIT_HP = 100;
+const DEFAULT_RANK = 'Noob';
 var logged = 0;
 
 //Static resources server
@@ -30,6 +33,65 @@ var server = app.listen(process.env.PORT || port, function () {
 });
 
 var io = require('socket.io')(server);
+
+/**
+	
+	USER class
+
+*/
+class User {
+  constructor() {
+    this.id = 'id_1';
+		this.kills = 0;
+		this.deaths = 0;
+		this.rank = DEFAULT_RANK;
+		// name etc
+  }
+  set name(name) {
+    this._name = name;
+  }
+  get name() {
+    return this._name;
+  }
+	set kills(kills) {
+		this._kills = kills;
+	}
+	get kills() {
+		return this._kills;
+	}
+	set deaths(deaths) {
+		this._deaths = deaths;
+	}
+	get deaths() {
+		return this._deaths;
+	}
+	set rank(rank) {
+		this._rank = rank;
+	}
+	get rank() {
+		return this._rank;
+	}
+	leave() {
+		// TODO
+		console.log(this.name + ' left the game.');
+	}
+  sayHello() {
+    console.log('Hello, my name is ' + this.name + ', I have ID: ' + this.id);
+  }
+}
+
+var somePlayer = new User();
+somePlayer.name = 'martin'; // The setter will be used automatically here.
+somePlayer.sayHello();
+console.log('His rank is ' + somePlayer.rank);
+console.log(somePlayer.deaths);
+somePlayer.leave();
+
+/**
+
+	GAMESERVER class
+
+*/
 
 function GameServer(){
 	this.users = [];
@@ -74,7 +136,7 @@ GameServer.prototype = {
 		});
 	},
 
-	//The app has absolute control of the balls and their movement
+	// The app has absolute control of the balls and their movement
 	syncBalls: function(){
 		var self = this;
 		this.balls.forEach( function(ball){
