@@ -96,8 +96,8 @@ somePlayer.leave();
 function GameServer(){
 	this.users = [];
 	this.ships = [];
-	this.balls = [];
-	this.lastBallId = 0;
+	this.bullets = [];
+	this.lastBulletId = 0;
 	this.outfits = [];
 }
 
@@ -110,8 +110,8 @@ GameServer.prototype = {
 		this.ships.push(ship);
 	},
 
-	addBall: function(ball){
-		this.balls.push(ball);
+	addBullet: function(bullet){
+		this.bullets.push(bullet);
 	},
 
 	addOutfit: function(outfit){
@@ -136,18 +136,18 @@ GameServer.prototype = {
 		});
 	},
 
-	// The app has absolute control of the balls and their movement
-	syncBalls: function(){
+	// The app has absolute control of the bullets and their movement
+	syncBullets: function(){
 		var self = this;
-		this.balls.forEach( function(ball){
-			self.detectCollision(ball);
+		this.bullets.forEach( function(bullet){
+			self.detectCollision(bullet);
 
-			//Detect when ball is out of bounds
-			if(ball.x < 0 || ball.x > WIDTH
-				|| ball.y < 0 || ball.y > HEIGHT){
-				ball.out = true;
+			//Detect when bullet is out of bounds
+			if(bullet.x < 0 || bullet.x > WIDTH
+				|| bullet.y < 0 || bullet.y > HEIGHT){
+				bullet.out = true;
 			}else{
-				ball.fly();
+				bullet.fly();
 			}
 		});
 	},
@@ -177,18 +177,18 @@ GameServer.prototype = {
 		//console.log('loot func')
 	},
 
-	//Detect if ball collides with any ship
-	detectCollision: function(ball){
+	//Detect if bullet collides with any ship
+	detectCollision: function(bullet){
 		var self = this;
 
 		this.ships.forEach( function(ship){
-			if(ship.id != ball.ownerId
-				&& Math.abs(ship.x - ball.x) < 150
-				&& Math.abs(ship.y - ball.y) < 150){
+			if(ship.id != bullet.ownerId
+				&& Math.abs(ship.x - bullet.x) < 150
+				&& Math.abs(ship.y - bullet.y) < 150){
 				//Hit ship
-				self.hurtShip(ship, ball.ownerId);
-				ball.out = true;
-				ball.exploding = true;
+				self.hurtShip(ship, bullet.ownerId);
+				bullet.out = true;
+				bullet.exploding = true;
 			}
 		});
 	},
@@ -234,9 +234,9 @@ GameServer.prototype = {
 		return true;
 	},
 	
-	isValidShoot: function(_ball){
+	isValidShoot: function(_bullet){
 		this.ships.forEach( function(ship){
-			if(ship.id == _ball.ownerId){
+			if(ship.id == _bullet.ownerId){
 				// user is dead
 				if(ship.hp <= 0){
 					return false;
@@ -250,7 +250,7 @@ GameServer.prototype = {
 	getData: function(){
 		var gameData = {};
 		gameData.ships = this.ships;
-		gameData.balls = this.balls;
+		gameData.bullets = this.bullets;
 		gameData.outfits = this.outfits;
 		
 		return gameData;
@@ -280,9 +280,9 @@ GameServer.prototype = {
 		});
 	},
 
-	cleanDeadBalls: function(){
-		this.balls = this.balls.filter(function(ball){
-			return !ball.out;
+	cleanDeadBullets: function(){
+		this.bullets = this.bullets.filter(function(bullet){
+			return !bullet.out;
 		});
 	},
 
@@ -292,10 +292,10 @@ GameServer.prototype = {
 		});
 	},
 
-	increaseLastBallId: function(){
-		this.lastBallId ++;
-		if(this.lastBallId > 1000){
-			this.lastBallId = 0;
+	increaseLastBulletId: function(){
+		this.lastBulletId ++;
+		if(this.lastBulletId > 1000){
+			this.lastBulletId = 0;
 		}
 	}
 
@@ -327,28 +327,28 @@ io.on('connection', function(client) {
 		if(data.ship != undefined){
 			game.syncShip(data.ship);
 		}
-		//update ball positions
-		game.syncBalls();
+		//update bullet positions
+		game.syncBullets();
 		game.syncOutfits();
 		//Broadcast data to clients
 		client.emit('sync', game.getData());
 		client.broadcast.emit('sync', game.getData());
 
 		//I do the cleanup after sending data, so the clients know
-		//when the ship dies and when the balls explode
+		//when the ship dies and when the bullets explode
 		game.cleanDeadShips();
-		game.cleanDeadBalls();
+		game.cleanDeadBullets();
 		game.cleanOutfits();
 		counter ++;
 	});
 
-	client.on('shoot', function(ball){
-		console.log(ball.ownerId);
+	client.on('shoot', function(bullet){
+		console.log(bullet.ownerId);
 		//game.isValidShoot();
 		// Check if user can shoot
 		// TODO check for position
-		var ball = new Ball(ball.ownerId, ball.alpha, ball.x, ball.y );
-		game.addBall(ball);
+		var bullet = new Bullet(bullet.ownerId, bullet.alpha, bullet.x, bullet.y );
+		game.addBullet(bullet);
 	});
 
 	client.on('respawnRequest', function(shipId){
@@ -368,9 +368,9 @@ io.on('connection', function(client) {
 
 });
 
-function Ball(ownerId, alpha, x, y){
-	this.id = game.lastBallId;
-	game.increaseLastBallId();
+function Bullet(ownerId, alpha, x, y){
+	this.id = game.lastBulletId;
+	game.increaseLastBulletId();
 	this.ownerId = ownerId;
 	this.alpha = alpha; //angle of shot in radians
 	this.x = x;
@@ -378,7 +378,7 @@ function Ball(ownerId, alpha, x, y){
 	this.out = false;
 };
 
-Ball.prototype = {
+Bullet.prototype = {
 
 	fly: function(){
 		//move to trayectory
