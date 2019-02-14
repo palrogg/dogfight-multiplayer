@@ -15,6 +15,12 @@ socket.on('sync', function(gameServerData){
 	game.receiveData(gameServerData);
 });
 
+socket.on('loot', function(outfitData){
+	
+	console.log('LOOT EVENT')
+	game.lootEvent(outfitData);
+});
+
 socket.on('killShip', function(shipData){
 	console.log('killShip socket received')
 	game.killShip(shipData);

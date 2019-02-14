@@ -45,7 +45,7 @@ gun 51 -21 "Particle Cannon"`
 var app = new PIXI.Application(900, 600, {backgroundColor : 0x111111});
 document.body.appendChild(app.view);
 var universe = new PIXI.Container();
-var ballContainer = new PIXI.Container();
+var bulletContainer = new PIXI.Container();
 var outfitContainer = new PIXI.Container();
 app.stage.position.x = app.renderer.width / 2;
 app.stage.position.y = app.renderer.height / 2;
@@ -109,14 +109,14 @@ universe.addChild(universeLimitLeft);
 universe.addChild(universeLimitBottom);
 universe.addChild(universeLimitRight);
 universe.addChild(outfitContainer);
-universe.addChild(ballContainer);
+universe.addChild(bulletContainer);
 
 
 /* ===== ====== ===== */
 
 function Game(arenaId, w, h, socket){
 	this.ships = []; //Ships (other than the local ship)
-	this.balls = [];
+	this.bullets = [];
 	this.width = w;
 	this.height = h;
 	this.$arena = $(arenaId);
@@ -188,6 +188,20 @@ Game.prototype = {
 	removeOutfit: function(outfit){
 		this.outfits = this.outfits.filter( function(o){return o.id != outfit.id} );
 		universe.removeChild(outfit.sprite);		
+	},
+	
+	lootEvent: function(outfitData){
+		console.log(outfitData);
+		// our user looted
+		if(game.localShip.id == outfitData.looterId){
+			console.log('yeah twas us')
+			this.localShip.outfits.push(outfitData.outfit.name)
+		}else{
+			// Some freaking sound / animation here
+			console.log('not same id')
+		}
+		
+		// another user looted
 	},
 	
 	killShip: function(ship){
@@ -270,7 +284,7 @@ Game.prototype = {
 			cannonAngle: this.localShip.cannonAngle
 		};
 		gameData.ship = t;
-		//Client game does not send any info about balls,
+		//Client game does not send any info about bullets,
 		//the server controls that part
     if(MULTI){
     	this.socket.emit('sync', gameData);
@@ -287,14 +301,12 @@ Game.prototype = {
 				if(clientOutfit.id == serverOutfit.id){
 					found = true;
 					if(serverOutfit.out){
-						console.log('Out!');
 						game.removeOutfit(clientOutfit);
 					}
-					// ...
-					// console.log('found?')
 				}
 			} );
-			if(!found){
+			
+			if(!found){ // new outfit has popped
 				console.log(serverOutfit);
 				game.addOutfit(serverOutfit.name, serverOutfit.type, serverOutfit.x, serverOutfit.y);
 			}
@@ -347,15 +359,15 @@ Game.prototype = {
 			}
 		});
 
-		//Render balls
+		//Render bullets
 
-		for (var i = ballContainer.children.length - 1; i >= 0; i--){
-			ballContainer.removeChild(ballContainer.children[i]);
+		for (var i = bulletContainer.children.length - 1; i >= 0; i--){
+			bulletContainer.removeChild(bulletContainer.children[i]);
 		};
 
-		serverData.balls.forEach( function(serverBall){
-			var b = new Ball(serverBall.id, serverBall.ownerId, game.$arena, serverBall.x, serverBall.y, serverBall.alpha);
-			b.exploding = serverBall.exploding;
+		serverData.bullets.forEach( function(serverBullet){
+			var b = new Bullet(serverBullet.id, serverBullet.ownerId, game.$arena, serverBullet.x, serverBullet.y, serverBullet.alpha);
+			b.exploding = serverBullet.exploding;
 			if(b.exploding){
 				b.explode();
 			}
@@ -380,7 +392,7 @@ function Outfit(name, type, x, y){
 Outfit.prototype = {
 	materialize: function(){
     	var spriteURLs = {
-    	'laser': 'https://res.cloudinary.com/dogfight/image/upload/v1531467481/outfit/hai_rifle.png',
+    	'twinWeapons': 'https://res.cloudinary.com/dogfight/image/upload/v1531467481/outfit/hai_rifle.png',
       'minishield': 'http://res.cloudinary.com/dogfight/image/upload/c_scale,w_67/v1531467481/outfit/blue_sun.png'
     }
     var outfitSprite = PIXI.Sprite.fromImage(spriteURLs[this.name]);
@@ -403,7 +415,7 @@ Outfit.prototype = {
 	}
 };
 
-function Ball(id, ownerId, $arena, x, y, alpha){
+function Bullet(id, ownerId, $arena, x, y, alpha){
 	this.id = id;
 	this.ownerId = ownerId;
 	this.$arena = $arena;
@@ -414,32 +426,32 @@ function Ball(id, ownerId, $arena, x, y, alpha){
 	this.materialize();
 }
 
-Ball.prototype = {
+Bullet.prototype = {
 
 	materialize: function(){
-		var ballSprite = PIXI.Sprite.fromImage('//res.cloudinary.com/dogfight/image/upload/v1499983127/ship/plasma_1.png');
+		var bulletSprite = PIXI.Sprite.fromImage('//res.cloudinary.com/dogfight/image/upload/v1499983127/ship/plasma_1.png');
 
 		//shipSprite.anchor.set(0.5);
-		ballSprite.anchor.set(0.5);
-		ballSprite.x = this.x;
-		ballSprite.y = this.y;
-		ballSprite.rotation = this.alpha;
-		ballContainer.addChild(ballSprite);
-		this.sprite = ballSprite;
+		bulletSprite.anchor.set(0.5);
+		bulletSprite.x = this.x;
+		bulletSprite.y = this.y;
+		bulletSprite.rotation = this.alpha;
+		bulletContainer.addChild(bulletSprite);
+		this.sprite = bulletSprite;
 	},
 
 	explode: function(){
-		var ballHitAnimation = new PIXI.extras.AnimatedSprite(ballHitFrames);
-		ballHitAnimation.loop = false;
-		ballHitAnimation.onComplete = function(){
+		var bulletHitAnimation = new PIXI.extras.AnimatedSprite(bulletHitFrames);
+		bulletHitAnimation.loop = false;
+		bulletHitAnimation.onComplete = function(){
 			universe.removeChild(this);
 		}
-		ballHitAnimation.anchor.set(0.5);
-		ballHitAnimation.x = this.x;
-		ballHitAnimation.y = this.y;
-		ballHitAnimation.animationSpeed = 1;
-    ballHitAnimation.play();
-		universe.addChild(ballHitAnimation);
+		bulletHitAnimation.anchor.set(0.5);
+		bulletHitAnimation.x = this.x;
+		bulletHitAnimation.y = this.y;
+		bulletHitAnimation.animationSpeed = 1;
+    bulletHitAnimation.play();
+		universe.addChild(bulletHitAnimation);
 	}
 }
 
@@ -462,6 +474,7 @@ function Ship(id, name, type, $arena, game, isLocal, x, y, hp, kills, rank){
 	this.y = y;
 	this.mx = null;
 	this.my = null;
+	this.outfits = [];
 	this.dir = {
 		up: false,
 		down: false,
@@ -706,7 +719,7 @@ Ship.prototype = {
 			this.baseAngle += rotateRequest * dt * this.maneuverability;
 		}
 
-		if(this.shootRequest && now - lastShoot > 100){
+		if(this.shootRequest && now - lastShoot > 200){
 			this.shoot();
 			lastShoot = now;
 		}
@@ -723,31 +736,39 @@ Ship.prototype = {
 		this.cannonAngle += 90;
 	},
 
+	createBullet: function(gunIndex, bulletIndex){
+	//Emit bullet to server
+		var serverBullet = {bulletIndex: bulletIndex};
+		serverBullet.alpha = this.baseAngle; //angle of shot in radians
+
+		//Set init position
+		var cannonLength = -this.specs.guns[gunIndex].y; //100;
+		var deltaX = cannonLength * Math.sin(serverBullet.alpha) + (shootPosition) * Math.cos(serverBullet.alpha);
+		var deltaY = cannonLength * Math.cos(serverBullet.alpha) - (shootPosition) * Math.sin(serverBullet.alpha);
+		serverBullet.ownerId = this.id;
+		serverBullet.x = this.x + deltaX;
+		serverBullet.y = this.y - deltaY;
+		serverBullet.momentum = {x: this.xSpeed, y: this.ySpeed};
+		return serverBullet;
+	},
+	
 	shoot: function(){
 		if(this.dead){
 			return;
 		}
-
-		//Emit ball to server
-		var serverBall = {};
-		serverBall.alpha = this.baseAngle; //angle of shot in radians
-
-		//Set init position
-		var cannonLength = -this.specs.guns[0].y; //100;
-		var deltaX = cannonLength * Math.sin(serverBall.alpha) + (shootPosition) * Math.cos(serverBall.alpha);
-		var deltaY = cannonLength * Math.cos(serverBall.alpha) - (shootPosition) * Math.sin(serverBall.alpha);
-
-		shootPosition *= -1;
-
-		serverBall.ownerId = this.id;
-		serverBall.x = this.x + deltaX;
-		serverBall.y = this.y - deltaY;
-
+		
 		if(MULTI){
-    	this.game.socket.emit('shoot', serverBall);
+    	this.game.socket.emit('shoot', this.createBullet(3, 0));
+			shootPosition *= -1;
+			if( this.outfits.indexOf('twinWeapons') !== -1 ){
+				this.game.socket.emit('shoot', this.createBullet(0, 1));
+				//this.game.socket.emit('shoot', this.createBullet(1, 2));
+				//this.game.socket.emit('shoot', this.createBullet(2, 3));
+			}
 			protonSound.play();
     }else{
-    	var x = new Ball(1, this.id, null, serverBall.x, serverBall.y, this.baseAngle)
+			var serverBullet = this.createBullet(0);
+    	var x = new Bullet(1, this.id, null, serverBullet.x, serverBullet.y, this.baseAngle)
     }
 	}
 
@@ -850,9 +871,9 @@ var jumpInSound = new Howl({
 	src: ['//res.cloudinary.com/dogfight/video/upload/v1500143339/jump_in_eppjnq.wav']
 });
 
-var ballHitFrames = [];
+var bulletHitFrames = [];
 for (var i = 0; i < 8; i++) {
-		ballHitFrames.push(PIXI.Texture.fromImage('//res.cloudinary.com/dogfight/image/upload/v1500145849/projectileHit/plasmaImpact/plasma_explosion_' + i + '.png'));
+		bulletHitFrames.push(PIXI.Texture.fromImage('//res.cloudinary.com/dogfight/image/upload/v1500145849/projectileHit/plasmaImpact/plasma_explosion_' + i + '.png'));
 }
 
 

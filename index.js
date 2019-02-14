@@ -1,5 +1,17 @@
 "use strict";
 
+/**
+
+Classes:
+* User
+* Gameserver
+* Bullet
+
+TODO
+
+
+*/
+
 var express = require('express');
 var validator = require('validator');
 
@@ -40,11 +52,13 @@ var io = require('socket.io')(server);
 
 */
 class User {
-  constructor() {
-    this.id = 'id_1';
+  constructor(user) {
+    this.id = user.id;
+		this.name = user.name;
 		this.kills = 0;
 		this.deaths = 0;
 		this.rank = DEFAULT_RANK;
+		console.log('init done for ' + this.name);
 		// name etc
   }
   set name(name) {
@@ -80,13 +94,13 @@ class User {
   }
 }
 
-var somePlayer = new User();
+/*var somePlayer = new User();
 somePlayer.name = 'martin'; // The setter will be used automatically here.
 somePlayer.sayHello();
 console.log('His rank is ' + somePlayer.rank);
 console.log(somePlayer.deaths);
 somePlayer.leave();
-
+*/
 /**
 
 	GAMESERVER class
@@ -103,7 +117,7 @@ function GameServer(){
 
 GameServer.prototype = {
 	addUser: function(user){
-		this.users.push(user)
+		this.users.push( new User(user) );
 	},
 	
 	addShip: function(ship){
@@ -173,6 +187,15 @@ GameServer.prototype = {
 	},
 	
 	lootOutfit(ship, outfit){
+		console.log(outfit.type);
+		switch (outfit.type) {
+			case "weapon":
+				console.log('WEAP');
+				io.sockets.emit('loot', {'looterId': ship.id, 'outfit': outfit} );
+				break;
+			default:
+				break;
+		}
 		// ship.getOutfit(outfit);
 		//console.log('loot func')
 	},
@@ -307,13 +330,14 @@ var game = new GameServer();
 
 io.on('connection', function(client) {
 	client.on('joinGame', function(ship){
+		var user = ship;
 		ship.name = validator.whitelist(ship.name, /a-zA-Z0-9 /);
-		console.log(ship.name + ' joined the game');
-		console.log('His vessel type: ' + ship.type);
-		console.log('His id: ' + ship.id);
-		
+
 		// TODO check if valid id
 		console.log(game.idIsAvailable(ship.id));
+		
+		// Add user and add ship
+		game.addUser({id: user.id, name: user.name});
 
 		var initX = getRandomInt(100, worldWidth-200);
 		var initY = getRandomInt(100, worldHeight-200);
@@ -347,7 +371,12 @@ io.on('connection', function(client) {
 		//game.isValidShoot();
 		// Check if user can shoot
 		// TODO check for position
-		var bullet = new Bullet(bullet.ownerId, bullet.alpha, bullet.x, bullet.y );
+		
+		// check if double shoot
+		
+		// TODO add momentum when we shoot
+		//console.log(bullet.momentum);
+		var bullet = new Bullet(bullet.ownerId, bullet.alpha, bullet.x, bullet.y, bullet.momentum );
 		game.addBullet(bullet);
 	});
 
@@ -368,22 +397,24 @@ io.on('connection', function(client) {
 
 });
 
-function Bullet(ownerId, alpha, x, y){
+function Bullet(ownerId, alpha, x, y, momentum){
 	this.id = game.lastBulletId;
 	game.increaseLastBulletId();
 	this.ownerId = ownerId;
 	this.alpha = alpha; //angle of shot in radians
 	this.x = x;
 	this.y = y;
+	this.momentum = momentum;
 	this.out = false;
 };
 
 Bullet.prototype = {
 
 	fly: function(){
-		//move to trayectory
-		var speedX = BALL_SPEED * Math.sin(this.alpha);
-		var speedY = -BALL_SPEED * Math.cos(this.alpha);
+		
+		// TODO: change momentum to something accurate using deltatime?
+		var speedX = BALL_SPEED * Math.sin(this.alpha) + this.momentum.x * 50;
+		var speedY = -BALL_SPEED * Math.cos(this.alpha) + this.momentum.y * 50;
 		this.x += speedX;
 		this.y += speedY;
 	}
@@ -396,5 +427,6 @@ function getRandomInt(min, max) {
 
 
 setTimeout(function(){
-	game.addOutfit({'name': 'laser', 'type': 'weapon', 'x': getRandomInt(100, worldWidth-200), 'y': getRandomInt(100, worldWidth-200)});	
-}, 1200);
+	console.log('add outfit')
+	game.addOutfit({'name': 'twinWeapons', 'type': 'weapon', 'x': getRandomInt(100, worldWidth-200), 'y': getRandomInt(100, worldWidth-200)});	
+}, 300);
